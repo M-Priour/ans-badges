@@ -1,0 +1,24 @@
+{
+  "@context": "https://w3id.org/openbadges/v2",
+  "type": "Assertion",
+  "id": "https://m-priour.github.io/ans-badges/assertions/participant-projectathon-2026-yohann-poiron.jsonld",
+  "recipient": {
+    "type": "email",
+    "hashed": true,
+    "salt": "134969fbdaa58860de5021e2d0c7d42c",
+    "identity": "sha256$849486a00defb4d5146b5df94ea1b3900ff032f19ebcaddf5040b0b37371210d"
+  },
+  "badge": "https://m-priour.github.io/ans-badges/participant-projectathon-2026.jsonld",
+  "image": "https://m-priour.github.io/ans-badges/images/participant-projectathon-2026.png",
+  "issuedOn": "2026-03-12T18:00:00Z",
+  "evidence": {
+    "type": "Evidence",
+    "id": "https://interop.esante.gouv.fr/projectathon-2026",
+    "narrative": "Participation validée au Projectathon ANS 2026 du 10 au 12 mars 2026.",
+    "name": "Projectathon ANS 2026 — Tests d'interopérabilité CI-SIS"
+  },
+  "verify": {
+    "type": "HostedBadge",
+    "url": "https://m-priour.github.io/ans-badges/assertions/participant-projectathon-2026-yohann-poiron.jsonld"
+  }
+}
