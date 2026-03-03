@@ -9,15 +9,18 @@
     "identity": "sha256$fca3e3227069aa2f1e88cef76885a04979890f8e5e1e5a521ec8635c327e219d"
   },
   "badge": "https://m-priour.github.io/ans-badges/participant-projectathon-2026.jsonld",
-  "image": "https://m-priour.github.io/ans-badges/images/participant-projectathon-2026.png",
-  "issuedOn": "2026-03-02T12:00:00Z",
-  "evidence": {
-    "type": "Evidence",
-    "id": "https://interop.esante.gouv.fr/projectathon-2026",
-    "narrative": "Participation validée au Projectathon ANS 2026 du 10 au 12 mars 2026.",
-    "name": "Projectathon ANS 2026 — Tests d'interopérabilité CI-SIS"
+  "image": {
+    "id": "https://m-priour.github.io/ans-badges/images/participant-projectathon-2026.png"
   },
-  "verify": {
+  "issuedOn": "2026-03-02T12:00:00Z",
+  "evidence": [
+    {
+      "id": "https://interop.esante.gouv.fr/projectathon-2026",
+      "narrative": "Participation validee au Projectathon ANS 2026 du 10 au 12 mars 2026.",
+      "name": "Projectathon ANS 2026 - Tests d'interoperabilite CI-SIS"
+    }
+  ],
+  "verification": {
     "type": "HostedBadge",
     "url": "https://m-priour.github.io/ans-badges/assertions/participant-projectathon-2026-nicolas-riss.jsonld"
   }
