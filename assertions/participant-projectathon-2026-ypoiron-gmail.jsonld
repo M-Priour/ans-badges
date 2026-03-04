@@ -1,0 +1,27 @@
+{
+  "@context": "https://w3id.org/openbadges/v2",
+  "type": "Assertion",
+  "id": "https://m-priour.github.io/ans-badges/assertions/participant-projectathon-2026-ypoiron-gmail.jsonld",
+  "recipient": {
+    "type": "email",
+    "hashed": true,
+    "salt": "d1d0e57d77b515da31d407407b80a733",
+    "identity": "sha256$b1b510e1a47deb8315225b7335a0995fc3ee96bc7b5fdf0c2cc9a256a9e9356e"
+  },
+  "badge": "https://m-priour.github.io/ans-badges/participant-projectathon-2026.jsonld",
+  "image": {
+    "id": "https://m-priour.github.io/ans-badges/images/participant-projectathon-2026.png"
+  },
+  "issuedOn": "2026-03-02T12:00:00Z",
+  "evidence": [
+    {
+      "id": "https://interop.esante.gouv.fr/projectathon-2026",
+      "narrative": "Participation validee au Projectathon ANS 2026 du 10 au 12 mars 2026.",
+      "name": "Projectathon ANS 2026 - Tests d'interoperabilite CI-SIS"
+    }
+  ],
+  "verification": {
+    "type": "HostedBadge",
+    "url": "https://m-priour.github.io/ans-badges/assertions/participant-projectathon-2026-ypoiron-gmail.jsonld"
+  }
+}
