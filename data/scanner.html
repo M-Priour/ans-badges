@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scanner Datamatrix</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    h1 { margin-bottom: 16px; font-size: 1.4rem; color: #a8d8ea; }
+    #container {
+      position: relative;
+      width: 100%;
+      max-width: 500px;
+    }
+    video {
+      width: 100%;
+      border-radius: 10px;
+      display: block;
+    }
+    canvas { display: none; }
+    #overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+    }
+    #result-box {
+      margin-top: 16px;
+      width: 100%;
+      max-width: 500px;
+      background: #16213e;
+      border-radius: 10px;
+      padding: 16px;
+      min-height: 80px;
+    }
+    #result-label { font-size: 0.8rem; color: #888; margin-bottom: 6px; }
+    #result {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #4ecca3;
+      word-break: break-all;
+    }
+    #status {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      color: #888;
+    }
+    #camera-select {
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: none;
+      background: #16213e;
+      color: #eee;
+      width: 100%;
+      max-width: 500px;
+    }
+    .highlight { animation: flash 0.4s ease; }
+    @keyframes flash {
+      0% { background: #4ecca3; color: #000; }
+      100% { background: #16213e; color: #4ecca3; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Scanner Datamatrix</h1>
+  <select id="camera-select"></select>
+  <div id="container">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas"></canvas>
+    <canvas id="overlay"></canvas>
+  </div>
+  <div id="result-box">
+    <div id="result-label">Dernier code lu</div>
+    <div id="result">En attente...</div>
+  </div>
+  <div id="status">Chargement de la librairie...</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/zxing-wasm@1.3.2/dist/full/zxing_full.min.js"></script>
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const overlay = document.getElementById('overlay');
+    const ctx = canvas.getContext('2d');
+    const overlayCtx = overlay.getContext('2d');
+    const resultEl = document.getElementById('result');
+    const statusEl = document.getElementById('status');
+    const cameraSelect = document.getElementById('camera-select');
+
+    let stream = null;
+    let scanning = false;
+    let reader = null;
+    let lastCode = null;
+
+    async function initZXing() {
+      const zxing = await ZXingWASM.getZXingModule();
+      reader = new ZXingWASM.ZXingWasmFullReader(zxing);
+      reader.setOptions({
+        formats: ['DataMatrix'],
+        tryHarder: true,
+      });
+      statusEl.textContent = 'Librairie prête — démarrage caméra...';
+      await populateCameras();
+    }
+
+    async function populateCameras() {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cameras = devices.filter(d => d.kind === 'videoinput');
+      cameraSelect.innerHTML = '';
+      cameras.forEach((cam, i) => {
+        const opt = document.createElement('option');
+        opt.value = cam.deviceId;
+        opt.textContent = cam.label || `Caméra ${i + 1}`;
+        cameraSelect.appendChild(opt);
+      });
+      // Préférer caméra arrière
+      const back = cameras.find(c => /back|rear|environment/i.test(c.label));
+      if (back) cameraSelect.value = back.deviceId;
+      await startCamera(cameraSelect.value);
+    }
+
+    cameraSelect.addEventListener('change', () => startCamera(cameraSelect.value));
+
+    async function startCamera(deviceId) {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      scanning = false;
+      const constraints = {
+        video: deviceId
+          ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+          : { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+      };
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+        video.onloadedmetadata = () => {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          overlay.width = video.videoWidth;
+          overlay.height = video.videoHeight;
+          scanning = true;
+          statusEl.textContent = 'Scan en cours...';
+          scanLoop();
+        };
+      } catch (e) {
+        statusEl.textContent = 'Erreur caméra : ' + e.message;
+      }
+    }
+
+    async function scanLoop() {
+      if (!scanning) return;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+
+      try {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const results = await reader.decodeMultiple(imageData);
+
+        if (results && results.length > 0) {
+          const code = results[0].text;
+          drawBox(results[0]);
+          if (code !== lastCode) {
+            lastCode = code;
+            resultEl.textContent = code;
+            resultEl.classList.remove('highlight');
+            void resultEl.offsetWidth;
+            resultEl.classList.add('highlight');
+            statusEl.textContent = `Code détecté à ${new Date().toLocaleTimeString()}`;
+          }
+        }
+      } catch (_) {}
+
+      requestAnimationFrame(scanLoop);
+    }
+
+    function drawBox(result) {
+      if (!result.position) return;
+      const pts = [
+        result.position.topLeft,
+        result.position.topRight,
+        result.position.bottomRight,
+        result.position.bottomLeft,
+      ];
+      overlayCtx.strokeStyle = '#4ecca3';
+      overlayCtx.lineWidth = 3;
+      overlayCtx.beginPath();
+      overlayCtx.moveTo(pts[0].x, pts[0].y);
+      pts.slice(1).forEach(p => overlayCtx.lineTo(p.x, p.y));
+      overlayCtx.closePath();
+      overlayCtx.stroke();
+    }
+
+    initZXing().catch(e => {
+      statusEl.textContent = 'Erreur init : ' + e.message;
+    });
+  </script>
+</body>
+</html>
