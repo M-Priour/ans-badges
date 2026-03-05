@@ -88,7 +88,16 @@
   <div id="status">Chargement de la librairie...</div>
 
   <script type="module">
-    import { readBarcodes } from 'https://cdn.jsdelivr.net/npm/zxing-wasm@3.0.0/dist/iife/reader/index.js';
+    const CDN = 'https://cdn.jsdelivr.net/npm/zxing-wasm@3.0.0';
+
+    const { readBarcodes, prepareZXingModule } = await import(`${CDN}/dist/es/reader/index.js`);
+
+    // Point the WASM loader to the CDN
+    await prepareZXingModule({
+      overrides: {
+        locateFile: (path) => `${CDN}/dist/es/reader/${path}`,
+      },
+    });
 
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
@@ -184,8 +193,6 @@
       const pos = result.position;
       if (!pos) return;
       const pts = [pos.topLeft, pos.topRight, pos.bottomRight, pos.bottomLeft];
-
-      // Scale from canvas coords to overlay display coords
       const scaleX = overlay.clientWidth / canvas.width;
       const scaleY = overlay.clientHeight / canvas.height;
 
