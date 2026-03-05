@@ -22,11 +22,7 @@
       width: 100%;
       max-width: 500px;
     }
-    video {
-      width: 100%;
-      border-radius: 10px;
-      display: block;
-    }
+    video { width: 100%; border-radius: 10px; display: block; }
     canvas { display: none; }
     #overlay {
       position: absolute;
@@ -45,17 +41,8 @@
       min-height: 80px;
     }
     #result-label { font-size: 0.8rem; color: #888; margin-bottom: 6px; }
-    #result {
-      font-size: 1.1rem;
-      font-weight: bold;
-      color: #4ecca3;
-      word-break: break-all;
-    }
-    #status {
-      margin-top: 10px;
-      font-size: 0.85rem;
-      color: #888;
-    }
+    #result { font-size: 1.1rem; font-weight: bold; color: #4ecca3; word-break: break-all; }
+    #status { margin-top: 10px; font-size: 0.85rem; color: #888; }
     #camera-select {
       margin-bottom: 12px;
       padding: 8px 12px;
@@ -87,15 +74,19 @@
   </div>
   <div id="status">Chargement de la librairie...</div>
 
-  <script type="module">
+  <script src="https://cdn.jsdelivr.net/npm/zxing-wasm@3.0.0/dist/iife/reader/index.js"></script>
+  <script>
     const CDN = 'https://cdn.jsdelivr.net/npm/zxing-wasm@3.0.0';
+    const { readBarcodes, prepareZXingModule } = ZXingWASM;
 
-    const { readBarcodes, prepareZXingModule } = await import(`${CDN}/dist/es/reader/index.js`);
-
-    // Point the WASM loader to the CDN
-    await prepareZXingModule({
+    prepareZXingModule({
       overrides: {
-        locateFile: (path) => `${CDN}/dist/es/reader/${path}`,
+        locateFile: (path, prefix) => {
+          if (path.endsWith('.wasm')) {
+            return `${CDN}/dist/reader/${path}`;
+          }
+          return prefix + path;
+        },
       },
     });
 
@@ -118,8 +109,10 @@
       maxNumberOfSymbols: 1,
     };
 
-    statusEl.textContent = 'Librairie prête — démarrage caméra...';
-    await populateCameras();
+    async function init() {
+      statusEl.textContent = 'Démarrage caméra...';
+      await populateCameras();
+    }
 
     async function populateCameras() {
       const devices = await navigator.mediaDevices.enumerateDevices();
@@ -184,7 +177,9 @@
             statusEl.textContent = `Détecté à ${new Date().toLocaleTimeString()}`;
           }
         }
-      } catch (_) {}
+      } catch (e) {
+        statusEl.textContent = 'Erreur scan : ' + e.message;
+      }
 
       requestAnimationFrame(scanLoop);
     }
@@ -206,6 +201,10 @@
       overlayCtx.closePath();
       overlayCtx.stroke();
     }
+
+    init().catch(e => {
+      statusEl.textContent = 'Erreur : ' + e.message;
+    });
   </script>
 </body>
 </html>
