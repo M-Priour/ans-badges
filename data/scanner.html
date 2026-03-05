@@ -33,6 +33,7 @@
       top: 0; left: 0;
       width: 100%; height: 100%;
       pointer-events: none;
+      border-radius: 10px;
     }
     #result-box {
       margin-top: 16px;
@@ -65,10 +66,10 @@
       width: 100%;
       max-width: 500px;
     }
-    .highlight { animation: flash 0.4s ease; }
+    .highlight { animation: flash 0.5s ease; }
     @keyframes flash {
-      0% { background: #4ecca3; color: #000; }
-      100% { background: #16213e; color: #4ecca3; }
+      0% { background: #4ecca3; color: #000; border-radius: 4px; }
+      100% { background: transparent; color: #4ecca3; }
     }
   </style>
 </head>
@@ -86,12 +87,13 @@
   </div>
   <div id="status">Chargement de la librairie...</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/zxing-wasm@1.3.2/dist/full/zxing_full.min.js"></script>
-  <script>
+  <script type="module">
+    import { readBarcodes } from 'https://cdn.jsdelivr.net/npm/zxing-wasm@3.0.0/dist/iife/reader/index.js';
+
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const overlay = document.getElementById('overlay');
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     const overlayCtx = overlay.getContext('2d');
     const resultEl = document.getElementById('result');
     const statusEl = document.getElementById('status');
@@ -99,19 +101,16 @@
 
     let stream = null;
     let scanning = false;
-    let reader = null;
     let lastCode = null;
 
-    async function initZXing() {
-      const zxing = await ZXingWASM.getZXingModule();
-      reader = new ZXingWASM.ZXingWasmFullReader(zxing);
-      reader.setOptions({
-        formats: ['DataMatrix'],
-        tryHarder: true,
-      });
-      statusEl.textContent = 'Librairie prête — démarrage caméra...';
-      await populateCameras();
-    }
+    const readerOptions = {
+      formats: ['DataMatrix'],
+      tryHarder: true,
+      maxNumberOfSymbols: 1,
+    };
+
+    statusEl.textContent = 'Librairie prête — démarrage caméra...';
+    await populateCameras();
 
     async function populateCameras() {
       const devices = await navigator.mediaDevices.enumerateDevices();
@@ -123,7 +122,6 @@
         opt.textContent = cam.label || `Caméra ${i + 1}`;
         cameraSelect.appendChild(opt);
       });
-      // Préférer caméra arrière
       const back = cameras.find(c => /back|rear|environment/i.test(c.label));
       if (back) cameraSelect.value = back.deviceId;
       await startCamera(cameraSelect.value);
@@ -163,9 +161,9 @@
 
       try {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const results = await reader.decodeMultiple(imageData);
+        const results = await readBarcodes(imageData, readerOptions);
 
-        if (results && results.length > 0) {
+        if (results.length > 0) {
           const code = results[0].text;
           drawBox(results[0]);
           if (code !== lastCode) {
@@ -174,7 +172,7 @@
             resultEl.classList.remove('highlight');
             void resultEl.offsetWidth;
             resultEl.classList.add('highlight');
-            statusEl.textContent = `Code détecté à ${new Date().toLocaleTimeString()}`;
+            statusEl.textContent = `Détecté à ${new Date().toLocaleTimeString()}`;
           }
         }
       } catch (_) {}
@@ -183,25 +181,24 @@
     }
 
     function drawBox(result) {
-      if (!result.position) return;
-      const pts = [
-        result.position.topLeft,
-        result.position.topRight,
-        result.position.bottomRight,
-        result.position.bottomLeft,
-      ];
+      const pos = result.position;
+      if (!pos) return;
+      const pts = [pos.topLeft, pos.topRight, pos.bottomRight, pos.bottomLeft];
+
+      // Scale from canvas coords to overlay display coords
+      const scaleX = overlay.clientWidth / canvas.width;
+      const scaleY = overlay.clientHeight / canvas.height;
+
       overlayCtx.strokeStyle = '#4ecca3';
       overlayCtx.lineWidth = 3;
+      overlayCtx.shadowColor = '#4ecca3';
+      overlayCtx.shadowBlur = 8;
       overlayCtx.beginPath();
-      overlayCtx.moveTo(pts[0].x, pts[0].y);
-      pts.slice(1).forEach(p => overlayCtx.lineTo(p.x, p.y));
+      overlayCtx.moveTo(pts[0].x * scaleX, pts[0].y * scaleY);
+      pts.slice(1).forEach(p => overlayCtx.lineTo(p.x * scaleX, p.y * scaleY));
       overlayCtx.closePath();
       overlayCtx.stroke();
     }
-
-    initZXing().catch(e => {
-      statusEl.textContent = 'Erreur init : ' + e.message;
-    });
   </script>
 </body>
 </html>
